@@ -68,3 +68,34 @@ def parse_kml_to_dataframe(kml_data):
     # Step 3: Convert the extracted data to a DataFrame
     df = pd.DataFrame(data)
     return df
+
+
+def data_preprocessing(gpx_file_name, kmz_file_path):
+    
+    gpx_data = gpx_to_df(gpx_file_name)
+    kml_data = extract_kml_from_kmz(kmz_file_path)
+    kmz_data = parse_kml_to_dataframe(kml_data)
+
+    
+    kmz_data.drop('description', axis=1, inplace=True)
+    kmz_data.columns = ['Name', 'Longitude', 'Latitude']
+    
+    kmz_data = pd.merge(kmz_data[['Name', 'Longitude', 'Latitude']], gpx_data, how = 'left', on=['Longitude', 'Latitude'])
+    kmz_data.drop_duplicates(inplace=True)
+    
+    kmz_data['time_elapsed'] = kmz_data["Time"].diff(periods=-1)
+    kmz_data['end_time'] = kmz_data['Time']-kmz_data['time_elapsed']
+    kmz_data['time_elapsed'] = kmz_data['end_time']-kmz_data['Time']
+    
+    gpx_data = gpx_data.merge(kmz_data[['Name', 'Time']], how='left', on='Time')
+    
+    gpx_data['Time'] = gpx_data['Time'].apply(lambda x: x + pd.Timedelta(hours=12) if x.hour < 8 else x)
+    kmz_data['time_elapsed'] = kmz_data['time_elapsed'].apply(lambda x: x+pd.Timedelta(hours=24) if x < pd.Timedelta(0) else x)
+
+    
+    gpx_data.fillna(method='ffill', axis=0, inplace=True)
+    gpx_data.fillna(value = 'pre_lift_1', inplace = True)
+    
+    return gpx_data, kmz_data
+
+
