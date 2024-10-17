@@ -84,6 +84,7 @@ def data_preprocessing(gpx_file_name, kmz_file_path):
     kmz_data.drop_duplicates(inplace=True)
     
     kmz_data['time_elapsed'] = kmz_data["Time"].diff(periods=-1)
+    #kmz_data['Elevation_Change'] = (kmz_data['Elevation'].diff(periods=-11))
     kmz_data['end_time'] = kmz_data['Time']-kmz_data['time_elapsed']
     kmz_data['time_elapsed'] = kmz_data['end_time']-kmz_data['Time']
     
@@ -91,7 +92,6 @@ def data_preprocessing(gpx_file_name, kmz_file_path):
     
     gpx_data['Time'] = gpx_data['Time'].apply(lambda x: x + pd.Timedelta(hours=12) if x.hour < 8 else x)
     kmz_data['time_elapsed'] = kmz_data['time_elapsed'].apply(lambda x: x+pd.Timedelta(hours=24) if x < pd.Timedelta(0) else x)
-
     
     gpx_data.fillna(method='ffill', axis=0, inplace=True)
     gpx_data.fillna(value = 'pre_lift_1', inplace = True)
