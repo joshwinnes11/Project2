@@ -159,12 +159,23 @@ def add_staypionts(df_stay_location, foliumMap):
     ).add_to(foliumMap)
 
 import matplotlib.pyplot as plt
-import matplotlib as mpl 
+import matplotlib as mpl
+import folium
+from branca.element import Template, MacroElement
+import base64
+from io import BytesIO
+
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import folium
+from branca.element import Template, MacroElement
+import base64
+from io import BytesIO
+
 def add_speed_heatmap(df_gpx, foliumMap):
-    
     df = df_gpx.drop(labels=['Time'], axis=1)
 
-    min_speed, max_speed = df['Speed'].min(), df['Speed'].max()
+    min_speed, max_speed = df['Speed_MPH'].min(), df['Speed_MPH'].max()
     norm = plt.Normalize(vmin=min_speed, vmax=max_speed)
     colormap = plt.cm.get_cmap("inferno")
 
@@ -172,10 +183,48 @@ def add_speed_heatmap(df_gpx, foliumMap):
         folium.CircleMarker(
             location=(row['Latitude'], row['Longitude']),
             radius=2,
-            color=mpl.colors.to_hex(colormap(norm(row['Speed']))),  # Convert to hex for folium
-            fill=True,
-            fill_color=mpl.colors.to_hex(colormap(norm(row['Speed']))),
+            color=mpl.colors.to_hex(colormap(norm(row['Speed_MPH']))),
+            fill=False,
+            fill_color=mpl.colors.to_hex(colormap(norm(row['Speed_MPH']))),
             fill_opacity=0.2,
         ).add_to(foliumMap)
+
+    # Generate the vertical color scale image
+    fig, ax = plt.subplots(figsize=(0.5, 4))  # Taller and narrower figure
+    cb = mpl.colorbar.ColorbarBase(ax, cmap=colormap, norm=norm, orientation='vertical')
+    cb.set_label('Speed (MPH)')
+
+    # Save the image to a BytesIO object
+    buf = BytesIO()
+    fig.savefig(buf, format='png', bbox_inches='tight', dpi=100)
+    buf.seek(0)
+    encoded = base64.b64encode(buf.read()).decode('utf-8')
+    buf.close()
+
+    # HTML template for the vertical legend
+    legend_html = f'''
+    <div style="
+    position: fixed;
+    bottom: 50px;
+    left: 50px;
+    width: 100px;
+    height: 600px;
+    z-index:9999;
+    font-size:14px;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+    ">
+    <b>Speed Legend (mph)</b><br>
+    <img src="data:image/png;base64,{encoded}" alt="Legend">
+    </div>
+    '''
+
+    macro = MacroElement()
+    macro._template = Template(legend_html)
+    foliumMap.get_root().add_child(macro)
+
+    return foliumMap
 
 
