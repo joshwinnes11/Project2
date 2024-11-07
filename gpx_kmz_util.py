@@ -148,15 +148,33 @@ import folium
 def add_staypionts(df_stay_location, foliumMap):
     
     df_stay_location['datetime'] = df_stay_location['datetime'].dt.tz_localize(None)
-    
+    stay_durations = []
     for lat, lng, datetime, leave_time in zip(df_stay_location['lat'], df_stay_location['lng'], df_stay_location['datetime'], df_stay_location['leaving_datetime']):
+        stay_duration = leave_time-datetime
         folium.CircleMarker(
-        location=[lat, lng],
-        tooltip = leave_time-datetime,
-        radius=10,
-        weight=2,
-        color='red'  # Use a fixed color since we're focusing on one day
-    ).add_to(foliumMap)
+            location=[lat, lng],
+            tooltip = leave_time-datetime,
+            radius=10,
+            weight=2,
+            color='red'  
+        ).add_to(foliumMap)
+        stay_durations.append(stay_duration)
+    
+    df_stay_location['stay_duration'] = stay_durations
+    df_stay_location_sorted = df_stay_location.sort_values(by='stay_duration', ascending=False)
+    for lat, lng, stay_duration in zip(df_stay_location_sorted.head(3)['lat'], df_stay_location_sorted.head(3)['lng'], df_stay_location_sorted.head(3)['stay_duration']):
+        folium.Marker(
+            location=[lat, lng],
+            icon=folium.DivIcon(html = f"""
+            <div style='font-size: 18px; color: blue; background-color: white; padding: 4px 8px; 
+            border-radius: 5px; width: auto; white-space: nowrap;'>
+            {str(stay_duration)[-8:]}
+            </div>
+            """),
+            z_index_offset=1000
+        ).add_to(foliumMap)
+        
+        
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
